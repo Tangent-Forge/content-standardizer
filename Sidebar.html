@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: 'Google Sans', Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+      .container {
+        max-width: 380px;
+      }
+      h1 {
+        color: #202124;
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .btn-primary {
+        background-color: #9C27B0;
+        color: white;
+      }
+      .btn-primary:hover {
+        background-color: #7B1FA2;
+      }
+      .btn-secondary {
+        background-color: #f1f3f4;
+        color: #202124;
+      }
+      .btn-secondary:hover {
+        background-color: #e8eaed;
+      }
+      .btn-warning {
+        background-color: #F57C00;
+        color: white;
+      }
+      .btn-warning:hover {
+        background-color: #EF6C00;
+      }
+      .option-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #dadce0;
+      }
+      .option-item:last-child {
+        border-bottom: none;
+      }
+      .option-item input {
+        margin-right: 12px;
+        width: 18px;
+        height: 18px;
+      }
+      .option-label {
+        flex: 1;
+      }
+      .option-label strong {
+        display: block;
+        color: #202124;
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+      .option-label span {
+        color: #5f6368;
+        font-size: 12px;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #5f6368;
+      }
+      .spinner {
+        border: 3px solid #f1f3f4;
+        border-top: 3px solid #9C27B0;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .error {
+        color: #d93025;
+        padding: 12px;
+        background-color: #fce8e6;
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+      .success {
+        color: #188038;
+        padding: 12px;
+        background-color: #ceead6;
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #5f6368;
+      }
+      .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #dadce0;
+      }
+      .stat-item:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>📝 Content Standardizer</h1>
+      
+      <div id="content">
+        <div class="card">
+          <p style="color: #5f6368; margin-bottom: 16px;">
+            Standardize formatting and structure across Google Docs documents.
+          </p>
+          <button class="btn btn-primary" onclick="analyzeDocument()">
+            Analyze Document
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentStructure = null;
+
+      function analyzeDocument() {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Analyzing document...</p>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(onAnalysisComplete)
+          .withFailureHandler(onAnalysisError)
+          .apiGetDocumentStructure();
+      }
+
+      function onAnalysisComplete(structure) {
+        currentStructure = structure;
+        renderAnalysis(structure);
+      }
+
+      function renderAnalysis(structure) {
+        const content = document.getElementById('content');
+        
+        content.innerHTML = `
+          <div class="card">
+            <h3 style="margin: 0 0 16px 0; color: #202124; font-size: 16px;">
+              Document Analysis
+            </h3>
+            <div class="stat-item">
+              <span>Document Title</span>
+              <strong>${structure.title}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Total Paragraphs</span>
+              <strong>${structure.paragraphs.length}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Heading 1</span>
+              <strong>${structure.headings.h1}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Heading 2</span>
+              <strong>${structure.headings.h2}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Heading 3</span>
+              <strong>${structure.headings.h3}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Issues Found</span>
+              <strong>${structure.issues.length}</strong>
+            </div>
+            ${structure.issues.length > 0 ? `
+              <div style="margin-top: 16px;">
+                <strong style="color: #F57C00; font-size: 13px;">Issues:</strong>
+                ${structure.issues.map(issue => `
+                  <div style="font-size: 12px; color: #5f6368; margin-top: 4px; padding: 8px; background: #FFF3E0; border-radius: 4px;">
+                    ${issue.message}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            <button class="btn btn-primary" onclick="showOptions()">
+              Standardize Document
+            </button>
+            <button class="btn btn-secondary" onclick="analyzeDocument()">
+              Refresh Analysis
+            </button>
+          </div>
+        `;
+      }
+
+      function showOptions() {
+        const content = document.getElementById('content');
+        
+        content.innerHTML = `
+          <div class="card">
+            <h3 style="margin: 0 0 16px 0; color: #202124; font-size: 16px;">
+              Standardization Options
+            </h3>
+            <div class="option-item">
+              <input type="checkbox" id="optHeadings" checked>
+              <div class="option-label">
+                <strong>Standardize Headings</strong>
+                <span>Convert uppercase text to proper heading styles</span>
+              </div>
+            </div>
+            <div class="option-item">
+              <input type="checkbox" id="optFont" checked>
+              <div class="option-label">
+                <strong>Standardize Font</strong>
+                <span>Apply Arial font to all paragraphs</span>
+              </div>
+            </div>
+            <div class="option-item">
+              <input type="checkbox" id="optSpacing" checked>
+              <div class="option-label">
+                <strong>Standardize Spacing</strong>
+                <span>Apply consistent spacing around headings</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="applyStandardization()">
+              Apply Standardization
+            </button>
+            <button class="btn btn-secondary" onclick="renderAnalysis(currentStructure)">
+              Back to Analysis
+            </button>
+          </div>
+        `;
+      }
+
+      function applyStandardization() {
+        const options = {
+          standardizeHeadings: document.getElementById('optHeadings').checked,
+          standardizeFont: document.getElementById('optFont').checked,
+          standardizeSpacing: document.getElementById('optSpacing').checked
+        };
+
+        if (!options.standardizeHeadings && !options.standardizeFont && !options.standardizeSpacing) {
+          alert('Please select at least one standardization option.');
+          return;
+        }
+
+        if (!confirm('Apply standardization to this document?')) {
+          return;
+        }
+
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Applying standardization...</p>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(onStandardizationComplete)
+          .withFailureHandler(onStandardizationError)
+          .apiApplyStandardization(options);
+      }
+
+      function onStandardizationComplete(result) {
+        const content = document.getElementById('content');
+        
+        content.innerHTML = `
+          <div class="success">
+            <strong>Success!</strong> ${result.totalChanges} changes applied.
+          </div>
+          <div class="card">
+            <h3 style="margin: 0 0 16px 0; color: #202124; font-size: 16px;">
+              Changes Applied
+            </h3>
+            ${result.changes.slice(0, 10).map(change => `
+              <div style="padding: 8px 0; border-bottom: 1px solid #dadce0; font-size: 12px;">
+                <strong>${change.type}:</strong> ${change.from} → ${change.to}
+                ${change.text ? `<br><span style="color: #5f6368;">"${change.text}"</span>` : ''}
+              </div>
+            `).join('')}
+            ${result.changes.length > 10 ? `
+              <p style="color: #5f6368; font-size: 12px; text-align: center; margin-top: 8px;">
+                ... and ${result.changes.length - 10} more changes
+              </p>
+            ` : ''}
+          </div>
+          <button class="btn btn-warning" onclick="undoLastAction()">
+            Undo Last Action
+          </button>
+          <button class="btn btn-secondary" onclick="analyzeDocument()">
+            Analyze Again
+          </button>
+        `;
+      }
+
+      function undoLastAction() {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Undoing...</p>
+          </div>
+        `;
+
+        google.script.run
+          .withSuccessHandler(onUndoComplete)
+          .withFailureHandler(onUndoError)
+          .apiUndoLastAction();
+      }
+
+      function onUndoComplete(result) {
+        const content = document.getElementById('content');
+        
+        content.innerHTML = `
+          <div class="success">
+            <strong>${result.message}</strong>
+          </div>
+          <button class="btn btn-secondary" onclick="analyzeDocument()">
+            Back to Analysis
+          </button>
+        `;
+      }
+
+      function onAnalysisError(error) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error">
+            <strong>Error:</strong> ${error.message}
+          </div>
+          <button class="btn btn-secondary" onclick="analyzeDocument()">
+            Try Again
+          </button>
+        `;
+      }
+
+      function onStandardizationError(error) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error">
+            <strong>Error:</strong> ${error.message}
+          </div>
+          <button class="btn btn-secondary" onclick="showOptions()">
+            Back to Options
+          </button>
+        `;
+      }
+
+      function onUndoError(error) {
+        const content = document.getElementById('content');
+        content.innerHTML = `
+          <div class="error">
+            <strong>Error:</strong> ${error.message}
+          </div>
+          <button class="btn btn-secondary" onclick="analyzeDocument()">
+            Back to Analysis
+          </button>
+        `;
+      }
+    </script>
+  </body>
+</html>
